@@ -201,8 +201,90 @@ Takes an input and distributes it to N outputs depending on the select
         And (a=a[15], b=b[15], out=out[15]);
     }
 
+Mux4Way16
+
+Now, going in order, we'll construct each of these gates using NAND2 and the previous gates we've built.
+<img title= "Project 1 Deliverables" alt="Gates to build" src="figures/Gates_to_build.png">
+
+
+To construct a multi-bus version of a gate, imagine building the same one N times with no change!
+eg. A Mux16 is simply 16 Mux `(a=a[i], b=b[i], out=out[i]);`
+To do 4 way Mux, combine 2 stages of 2 way Muxes as such:
+stage 1: two regular 2 way Muxes controlled by sel[0],
+stage 2: one regular 2 way Mux controlled by sel[1].
+
+Any 2^n order Mux can be constructed using 2 stages where stage 1 has two 2^(n-1) Muxes and the last stage has one 2 way Mux.
+
+*** 
 ### Unit 2: 
+Addition:
+Half adders have no memory of previous carry bit
+`sum = aXORb, carry=aANDb`
+Full adders have an input for previous carry
+`sum = aXORbXORc, carry = aXANDb + aXANDc` (There has to be a better way to implement this in boolean logic).
+
+A full adder can be built from 2 half adders as such:
+
+<img title='Full adder' alt='full-adder' src='figures/full-adder.png'>
+
+The Hack ALU:
+<img title="Hack ALU" alt='hack-alu' src='figures/The Hack ALU.png'>
+
+| Op          |  OPCODE   |
+| ----------  |  -------- |
+|     0       |   0x2A    |
+|     1       |   0x3F    |
+|    -1       |   0x3A    |
+|     x       |   0x0C    |
+|     y       |   0x30    |
+|    !x       |   0x0D    |
+|    !y       |   0x31    |
+|    -x       |   0x0F    |
+|    -y       |   0x33    |
+|   x+1       |   0x1F    |
+|   y+1       |   0x37    |
+|   x-1       |   0x0E    |
+|   y-1       |   0x32    |
+|   x+y       |   0x02    |
+|   x-y       |   0x13    |
+|   y-x       |   0x07    |
+|   x&y       |   0x00    |
+|   x|y       |   0x15    |
 ### Unit 3: 
+#### 3.1 Sequential Logic
+        min clock cycle = propagation delays + combinatoral delay
+Sequential logic has the output out[t] depend on the previous output out[t-1]
+
+We can use states to make the same hardware do different tasks.
+        state[n] = function(state[n-1])
+
+#### 3.2 Flip Flops
+Circuits that can remember one bit of information during a transition.
+In a pipeline, no states are saved but rather passed onto the next combinatoral logic block in a chain to the output.
+In a finite state machine, the state at one instance is input to the combinatoral block that made it and contributes to the next state.
+
+<img title="Finite State Machine Seq. Logic" alt='seq. logic implementation' src='figures/FSM.png'>
+
+*REGISTERS*
+4 inputs: clock, in, out, and load.
+If load[n-1], out[n]=in[n-1]
+else, out[n]=out[n-1]
+
+
+#### 3.3 Memory Units
+In the von Neumann architecture, the memory registers connect to the ALU.
+
+
+## Ram Abstraction
+A sequence of n addressible registers pointed by an address input log(n) bits wide. Each register in the RAM has one word of data (16 bits in the Hack computer's case => 4 address bits).
+To read, set address to the location of the register and advance one clock cycle. *Only one register is accessed at a single time.* 
+
+To write, set address to location of register, set input to write value, then assert load (load=1). The write value is passed onto the register.
+#### 3.4 Counters
+A program counter has 6 inputs: load, reset, increment, input, clock and address.
+When inc is asserted, out[n+1]=out[n]+1 after each clock cycle.
+When reset is asserted, out[n+1]=0
+
 ### Unit 4: 
 ### Unit 5: 
 ### Unit 6: 
