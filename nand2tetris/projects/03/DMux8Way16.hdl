@@ -1,0 +1,31 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// Helper ckt for building RAM
+// 16 bit 8 way demux
+// Builds on top of 16 bit 4 Way demux
+// ...
+
+/**
+ * 8-way demultiplexor 16-bit:
+ * {a, b, c, d, e, f, g, h} = {in, 0, 0, 0, 0, 0, 0, 0} if sel == 000
+ *                            {0, in, 0, 0, 0, 0, 0, 0} if sel == 001
+ *                            etc.
+ *                            {0, 0, 0, 0, 0, 0, 0, in} if sel == 111
+ */
+
+CHIP DMux8Way16 {
+    IN in[16], sel[3];
+    OUT a[16], b[16], c[16], d[16], e[16], f[16], g[16], h[16];
+
+    PARTS:
+    // Put your code here:
+    DMux4Way16 (in=in, sel=sel[0..1],
+                a[0..15]=outA,
+                b[0..15]=outB,
+                c[0..15]=outC,
+                d[0..15]=outD);
+    DMux16 (in=outA, sel=sel[2], a=a, b=e);
+    DMux16 (in=outB, sel=sel[2], a=b, b=f);
+    DMux16 (in=outC, sel=sel[2], a=c, b=g);
+    DMux16 (in=outD, sel=sel[2], a=d, b=h);
+}
