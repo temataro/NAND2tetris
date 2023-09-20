@@ -288,7 +288,7 @@ A program counter has 6 inputs: load, reset, increment, input, clock and address
 When inc is asserted, out[n+1]=out[n]+1 after each clock cycle.
 When reset is asserted, out[n+1]=0.
 ### Unit 4: Machine Languages
-#### 4.2 Elements 
+#### 4.2 Elements
 Arithmetic operations: add, inc, ...
 Logical operations: and, or, ...
 Flow control operations: if x goto y, ...
@@ -392,7 +392,7 @@ Some examples:
         M = D-1 // Selected RAM location now loaded with value D-1
 
         // If D - 1 is zero, jump to execute instruction stored in ROM[56]
-        @56     // A = 0x0038 
+        @56     // A = 0x0038
         D - 1; JEQ      // Jump to instruction 0x0038 if D-1=0
 
 #### 4.4
@@ -448,7 +448,7 @@ To check whether a key is pressed, we probe the contents of the Keyboard chip (r
 #### 4.6 Hack programming
 ## Working with Registers and Memory
 Load
-        
+
         // set D = 10
         @10
         D=A
@@ -462,7 +462,7 @@ Store
         // RAM[1234] = D
         @1234
         M=D
-    
+
         // RAM[1234] = 10
         @10
         D=A
@@ -530,7 +530,7 @@ eg
         4 D; JGT // If D(=R0) > 0, jump to 9
 
         5 @R1  // If you reach here then R0 < 0
-        6 M=0  
+        6 M=0
         7 @11
         8 0; JMP  // Set R0 to zero; start inf loop
 
@@ -574,4 +574,282 @@ Variables: Use @var_name to assign a random memory location after register 15 th
 A branching symbol has a label declaration somewhere in the program while a variable doesn't.
 
 
+QUICK TIP: Variable declaration
+
+        // to set, say, n = 100
+        @100
+        D=A         // D=100
+        @n          // set M to an unknown memory location n <=> RAM[x] to hold the variable n
+        M=D         // n (= M = RAM[x]) = 100
+
+        // 4 lines
+        @value_for_var
+        D=A
+        @var
+        M=D         // var=value_for_val
+
+        // If the value you want to store in the variable is only 1, -1 or 0, we don't need to go through the data register to assign M
+
+        @is_open
+        M=0     // is_open=0
+
+
+The operations 0, 1, -1, register + 1, register - 1, ... (all the comp instructions) can be executed on the M register directly without invoking the D register.
+
 ## Iteration
+__________________________
+__________________________
+
+ Always write
+ pseudocode/flowcharts
+ before making an asm!
+ It also doesn't hurt to make
+ a trace table!
+__________________________
+__________________________
+
+        // Make an asm program to sum the numbers from 0 upto RAM[0] and store
+        // their result in R1.
+
+## Pointers
+QUICK TIP: Making a for loop
+
+        //  eg.
+        n = 10;
+        for (i=0; i<n; i++){
+            arr[i] = -1;
+        }
+
+Assign the variables in the loop: arr, i, n (let the array start from memory location 100).
+
+        // Pseudocode:
+        arr = 100
+        n = 10
+        i = 0
+
+        D=i-n
+        D; JEQ to END
+        // else
+        RAM[arr+i] = -1
+        i++
+
+Using a pointer means assigning a variable to store a memory address.
+
+        // Implementation
+
+        // i=0
+        @i
+        M=0
+
+        // n=10
+        @10
+        D=A
+        @n
+        M=D
+
+        // arr=100
+        @100
+        D=A
+        @arr
+        M=D
+
+    (LOOP)
+        @i
+        D=M     // D=i
+        @n
+        D=D-M   // D=D-n=i-n
+        @END
+        D; JEQ
+
+        // below only executes if loop is running:
+        @arr
+        D=M
+        @i
+        // watch this:
+        A=D+M
+        M=-1 // Here we set the next memory location depending on the value of
+             // address plus an offset i. We pointed to the location we want and
+             // changed the value of RAM there.
+        @i
+        M=M+1 // increment i by 1
+
+        @LOOP
+        0; JMP
+
+
+    (END)
+        @END
+        0; JMP
+
+## I/O Programming
+For convenience, the location 16,384 is assigned the variable SCREEN and 24,576 is KBD.
+
+eg. Draw a filled rectangle at the upper corner of the screen, 16 pixels wide and RAM[0]=R0 pixels long.
+
+        // Pseudocode
+        // Remember the screen memory map
+        // for (i=0; i<n; i++){
+        // draw_16_black_pixels_beginning_from_row_i();
+        // }
+
+        //  addr = SCREEN;
+        //  n = RAM[0];
+        //  i = 0;
+
+        //  LOOP:
+        //      if i > n goto END
+        //      else
+        //          RAM[addr] = 0x1111 // = -1;
+        //          addr += 32;
+        //          i++;
+        //          goto LOOP
+        //  END:
+        //      goto END
+
+A single line of pixels is 32  registers wide, so to go to the next line, our
+address must increment by 32.
+
+        // Implementation
+        @R0
+        D=M
+        @n
+        M=D // n=RAM[0]
+
+        @i
+        M=0 // i=0
+
+        @SCREEN
+        D=A  // We want the memory location itself not the contents!
+        @addr  // addr = RAM[SCREEN]
+        M=D
+
+    (LOOP) // i - n < 0
+        @i
+        D=M // D=i
+        @n
+        D=D-M // D=i-n
+        @END
+        D; JEQ
+
+        @SCREEN
+        M=-1  // RAM[SCREEN] = 0x1111
+
+        @i
+        M=M+1 // i++
+
+        @32
+        D=A  //  WE WANT THE VALUE 32 not the contents of register 32!
+        @addr
+        M=M+D  // addr += 32
+        @LOOP
+        0; JMP
+
+    (END)
+        @END
+        0; JMP
+
+
+### Unit 5: Computer Architecture
+
+#### 5.1 Information Flow
+
+<img title="Information Flow" alt="information flow" src="figures/information-flow.png">
+
+3 Buses: Control, Data, Address.
+
+## The CPU
+### The ALU
+Loads information from the data bus and manipulates it using the control bits.
+
+### The Registers
+Load or store data and addresses.
+
+### The Memory
+Divided into our data (RAM) and program (ROM). The data memory loads and stores
+data or addresses.
+The program memory stores all the program instructions. It needs to be fed by
+an address (the program counter) and has to be initially loaded with instruction
+data. It must then output into the control bus to control the flow of data and
+instructions to make the program execute.
+
+
+#### 5.2 The Fetch Execute Cycle
+All a CPU does at every cycle is fetch its next instruction from the program
+counter address in ROM, and execute the instruction.
+
+
+When fetching, we put the location of the next instruction in our program counter.
+Takes control bits and data bits to output data
+(Read memory location PC in ROM)
+In branching, the PC gets loaded by some value next cycle, otherwise, the value
+of PC gets incremented by 1 in this clock cycle.
+
+
+When executing, we take the opcode we fetched and load it to the CPU. We also
+need to access our registers and/or data memory as inputs to our ALU.
+
+
+#### 5.3 The Hack CPU
+
+<img title="Hack CPU Implementation" alt="CPU implementation" src="figures/hack-cpu.png">
+
+
+The CPU interface:
+Inputs
+* Instruction 16-bits
+* In_from_memory 16-bits
+* reset 1-bit
+
+Outputs
+* Out_to_memory 16-bits
+* Write_to_memory 1-bit
+* Memory_address_output 16-bit
+* Program counter 16-bit
+
+Instruction Handling:
+
+        A-XX-C-CCCCCC-DDD-JJJ
+
+The MSB is 1 for a C instruction and 0 for an A instruction.
+The instruction bits are decoded into 6 ALU control bits, 3 destination control
+bits and 3 jump bits.
+
+
+
+
+
+#### 5.4 The Hack Computer
+
+        Input --> Instruction Memory (ROM) => CPU <=> Data Memory --> Output
+
+<img title="Implementation" alt="implementation" src="overall-connection.png">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
