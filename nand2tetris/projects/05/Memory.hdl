@@ -28,4 +28,12 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+    // 16KB of RAM then Screen (8K of RAM) then Keyboard (1 register)
+    // use instruction[13..14] to decide which section to use
+    DMux4Way (in=load, sel=address[13..14], a=RAM1, b=RAM2, c=scrn, d=kb);
+    Or (a=RAM1, b=RAM2, out=RAM);
+    RAM16K (in=in, load=RAM, address=address[0..13], out=RAMout);
+    Screen (in=in, load=scrn, address=address[0..12], out=scrnout);
+    Keyboard (out=kbdout);
+    Mux4Way16 (a=RAMout, b=RAMout, c=scrnout, d=kbdout, sel=address[13..14], out=out);
 }

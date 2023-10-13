@@ -820,15 +820,198 @@ bits and 3 jump bits.
 
 #### 5.4 The Hack Computer
 
-        Input --> Instruction Memory (ROM) => CPU <=> Data Memory --> Output
+        Input --> Instruction Memory (ROM) => CPU <=> Data Memory (RAM) --> Output
 
-<img title="Implementation" alt="implementation" src="overall-connection.png">
-
-
+<img title="Implementation" alt="implementation" src='figures/overall-connection.png'>
 
 
+## Unit 6: The Assembler
+Translate asm into machine code.
+Multi-pass assemblers pass through the code once while taking note of all
+labels so jump instructions can be interpreted on the second run. Single-pass
+assemblers only go through the code once.
+
+#### 6.1 
+Building a cross-compiler to take in assembly commands and output machine code:
+
+1. read the asm line by line
+    `load R1, 18`
+1. break each line into different asm fields
+    ingore whitespace 
+
+    break into 
+        load, R1, 18
+    find opcode for load, 
+
+    find opcode for R1, 
+
+    translate 18 into binary, 
+
+    fill remaining bits in instruction
 
 
+Symbols: labels and variables
+replace labels with the line of asm at which they are declared.
+
+replace variables with the binary representation of the value they hold.
+Keep a running key-value pair corresponding to each symbol and its value.
+Variables are automatically stored in the next unused register after register 15.
+This means our first variable declared goes into the 16th register,
+our second goes into the 17th register and so on.
+
+In a multi-pass assembler, go through the code once just keeping track of
+these associations on a table before going through the code again with them
+replaced.
+
+Labels! These can be forward referenced, which means the location it points to
+hasn't been reached yet.
+To do this in a single-pass, ...?
+1. look up the binary code associated with each field
+    (use dicts?)
+1. combine different fields with their associated code to make a 16-bit instruction
+1. output line and go to next line in asm
+
+#### 6.2 Translating from Hack asm to Hack binary
+
+###Language specification
+1) A instructions
+   I[15] set to 0 
+
+        @value; value can be a non-negative decimal or a symbol for a variable
+
+eg.
+@21 -> 0000-0000-0001-0101 // (dashes put just for clarity)
+
+2) C instructions
+
+    
+        dest = comp; jump
+
+
+Binary syntax: **111-a-c1c2c3c4c5c6-d1d2d3-j1j2j3**
+
+Refer to the hack language specification to see what a specific command like
+JEQ corresponds to in machine code (it's 010 for j1j2j3)
+
+Symbols:
+pre-defined symbols
+
+[R0, R15] -> [0, 15]
+
+SCREEN -> 16384
+
+KBD -> 24576
+
+SP -> 0
+
+LCL -> 1
+
+ARG -> 2
+
+THIS -> 3
+
+THAT -> 4
+
+
+Comments:
+If you get to a '//' section in a line, ignore
+(better yet, sanitize the strings by splitting by '//' and only take the first
+part of the output)
+Remove all white space by splitting by ' ')
+
+steps to take to parse asm:
+1) remove all white space
+1) remove all symbols
+#### 6.3 The Hack Assembly Language
+<img title="Language Specifications" alt='language specifications' src='figures/lang-specs.png'>
+Making an assembler that can't deal with symbols.
+
+Translating A instructions
+Change number to binary representation in 15 bits,
+if a variable is used, assign that to (i + 16) where i is the index of the var in a list of all variables.
+
+Target expression: 0-BINARY_REP_IN_15_BITS
+
+Translating C instructions
+Refer, again, to the language specification.
+
+eg. 
+            MD=D+1 // dest = cmp; jmp
+                    // maybe split by ';', then '='
+
+Always split into three fields: ```dest, cmp, jmp```
+If jmp field isn't filled, ```j1j2j3=000```
+
+Target expression: 111-a-c1c2c3c4c5c6-d1d2d3-j1j2j3
+for MD=D+1
+Target expression: 111-0-011111-011-000
+
+think of `a` as a pre-comp bit and form your binary table of `comp` with `a`.
+
+#### 6.4 Symbols
+1) Variable Symbols
+
+if a variable is used, assign that to (i + 16) where i is the index of the var in a list of all variables.
+
+pseudo-code:
+
+    func    read_line(line)
+        if line[0] == '@':
+           var_or_num = line[1:]
+           if var_or_num.is_number():  # check if its a number or string
+                opcode = '0' + binary_15(int(var_or_num))
+            else:
+                if var_or_num not in list_of_vars:
+                    list_of_vars.append(var_or_num)
+                else:
+                    opcode = '0' + binary_15(16 + index(var_or_num))
+        # ... code for C instruction here
+        return opcode
+
+2) Label Symbols
+
+Declared by pseudo-command ```(XXX)```.
+Now, whenever, the symbol `xxx` is encountered in the program, jump to the line
+right after that pseudo-command declaration.
+
+(In code, do a pass of the code only making key-value associations between each
+label and its corresponding address in decimal, then removing that line)
+
+
+When making a multi-pass assembler, scan the entire program keeping a dict.
+
+Pseudo-code:
+
+
+        rom_instr = []
+        for line in lines:
+            line = remove_whitespace(line)
+            if is_instr(line):
+                line.append(rom_instr)
+            else:
+                if line[0] == '(':
+                label = line[1:-2]
+                symbol_lkp.key(label) = len(rom_instr) + 1
+                # assign next instruction address to value of label
+
+
+3) Pre-defined Symbols
+Just replace with their decimal number from a lookup
+
+
+#### 6.5 Reasonable Assembler SW Architecture
+
+### The parser
+Read a file line by line.
+Get fields.
+Break into tokens.
+
+### Converting mnemonics to code
+Lookup table for C instruction fields
+like this ```D_lkp = {"D": "000"}```
+
+### Handling symbols
+    
 
 
 

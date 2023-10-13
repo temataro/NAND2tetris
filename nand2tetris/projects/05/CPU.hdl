@@ -40,4 +40,33 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    Mux16 (a=outA, b=inM, sel=instruction[12], out=AMout);
+    Mux16 (a=ALUout, b=instruction, sel=instruction[15], out=inA);
+    Not (in=instruction[15], out=Ainst);
+    Or (a=Ainst, b=instruction[5], out=loadA);
+    ARegister (in=inA, load=loadA, out=outA, out[0..14]=addressM);
+    DRegister (in=ALUout, load=instruction[4], out=Dout); // I[4] controls whether we write to D
+    // loadA = Ainst or d1
+    // ALU
+    // fix comments below!
+    And (a=instruction[11], b=instruction[15], out=zx); // zx = Cinst*c1
+    And (a=instruction[10], b=instruction[15], out=nx); // nx = Cinst*c2
+    And (a=instruction[7], b=instruction[15], out=f); // zx = Cinst*c1
+    And (a=instruction[6], b=instruction[15], out=no); // zx = Cinst*c1
+    Or (a=instruction[9], b=Ainst, out=zy); // zy = Ainst + c3
+    Or (a=instruction[8], b=Ainst, out=ny); 
+    ALU (x=Dout, y=AMout,
+        zx=zx, nx=nx, zy=zy, ny=ny, f=f, no=no,
+        out=outM, out=ALUout, out=Dreg, zr=zeroflg, ng=negflg);
+    And (a=instruction[15], b=instruction[3], out=writeM);
+    // Jump instructions
+    Or (a=negflg, b=zeroflg, out=NOTpos);
+    Not (in=NOTpos, out=pos);
+    And (a=instruction[2], b=negflg, out=jmp0);
+    And (a=instruction[1], b=zeroflg, out=jmp1);
+    And (a=instruction[0], b=pos, out=jmp2);
+    Or (a=jmp0, b=jmp1, out=jmp0jmp1);
+    Or (a=jmp0jmp1, b=jmp2, out=ORjmp0jmp1jmp2);
+    //
+    PC (in=outA, load=ORjmp0jmp1jmp2, inc=true, reset=reset, out[0..14]=pc);
 }
