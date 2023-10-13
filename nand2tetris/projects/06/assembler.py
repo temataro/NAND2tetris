@@ -99,6 +99,8 @@ def sanitize_line(line: str) -> typing.List[str]:
 
 
 def is_instr(line: typing.List[str]) -> bool:
+    if "(" in line[0]:
+        return False
     if len(line) == 0:
         return False
     elif line[0] == "//":
@@ -132,7 +134,8 @@ def c_to_opcode(line: typing.List[str]) -> str:
     mnemonic = "".join(line)
     tmp = mnemonic.replace(";", "=")
     tmp = tmp.split("=")
-    print(tmp)
+    dest = ""
+    jmp = ""
     if "=" in mnemonic:
         dest = dest_lkp[tmp[0]]
         tmp.pop(0)
@@ -147,11 +150,46 @@ def c_to_opcode(line: typing.List[str]) -> str:
     return opcode
 
 
+def first_pass(file: str) -> None:
+    """This function does a first pass on the assembly to see where labels
+    are used and note them down into the predefined_lkp.
+    Input: file to be assembled.
+    """
+    with open(file, "r") as f:
+        with mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ) as mm:
+            instr_no: int = 0
+            while True:
+                line = sanitize_line(str(mm.readline()))
+                if line == [""]:
+                    break
+                if len(line) == 0:
+                    continue
+                if line[0][0] == "(":
+                    label = line[0][1:-1]
+                    # label addressed to the next instruction line
+                    predefined_lkp[label] = str(instr_no)
+                if is_instr(line):
+                    instr_no += 1
+    return None
+
+
+def write_to_hack_file(opcodes: typing.List[str], f: str) -> None:
+    with open(f, "w") as file:
+        for line in opcodes:
+            file.write(line + "\n")
+    return None
+
+
 def main(file: str) -> None:
-    label_lkp: typing.Dict[str, str] = {}
-    instr: typing.List[typing.List[str]] = []
     opcodes: typing.List[str] = []
     variables: typing.List[str] = []
+
+    filename = file.split("/")[-1]
+    filename = filename.split(".")[0]
+    output_file = filename + ".hack"
+
+    print(output_file)
+    first_pass(file)
 
     with open(file, "r") as f:
         with mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ) as mm:
@@ -159,6 +197,11 @@ def main(file: str) -> None:
                 line = sanitize_line(str(mm.readline()))
                 if line == [""]:
                     break
+                if len(line) == 0:
+                    continue
+                if line[0][0] == "(":  # label found!
+                    label = line[0][1:-1]
+                    continue
                 if is_instr(line):
                     if line[0][0] == "@":
                         opcode, variables = a_to_opcode(line, variables)
@@ -166,19 +209,25 @@ def main(file: str) -> None:
                         opcode = c_to_opcode(line)
                     opcodes.append(opcode)
         print(*opcodes, sep="\n")
+        write_to_hack_file(opcodes, output_file)
     return None
 
 
 if __name__ == "__main__":
-    # check file exists
-    # if not sys.argv[1]:
-    #     filepath = "add/Add.asm"
-    # else:
-    #    filepath = sys.argv[1]
-    filepath = "add/add_test.asm"
+    filepaths = [
+       #  "add/Add.asm",
+     "max/Max.asm",
+      #  "max/MaxL.asm",
+      #  "pong/Pong.asm",
+      #  "pong/PongL.asm",
+      #  "rect/RectL.asm",
+      #  "rect/RectL.asm",
+    ]
 
-    if not os.path.exists(filepath):
-        print("File not found!")
-        sys.exit(0)
-    else:
-        sys.exit(main(filepath))
+    for file in filepaths:
+        if os.path.exists(file):
+            main(file)
+        else:
+            print("File not found!")
+            sys.exit(0)
+    sys.exit(0)
