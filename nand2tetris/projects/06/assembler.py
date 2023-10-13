@@ -50,7 +50,7 @@ cmp_lkp: typing.Dict[str, str] = {
     "M+1": "1110111",
     "M-1": "1110010",
     "D+M": "1000010",
-    "D-M": "1100011",
+    "D-M": "1010011",
     "M-D": "1000111",
     "D&M": "1000000",
     "D|M": "1010101",
@@ -130,22 +130,23 @@ def a_to_opcode(
 
 
 def c_to_opcode(line: typing.List[str]) -> str:
-    opcode = "111"
-    mnemonic = "".join(line)
+    opcode: str = "111"
+    mnemonic: str = "".join(line)
+    # to handle in-line comments, split the string by // first
+    mnemonic = mnemonic.split("//")[0]
     tmp = mnemonic.replace(";", "=")
     tmp = tmp.split("=")
-    dest = ""
-    jmp = ""
+    dest = "000"
+    jmp = "000"
+    # print(tmp)
     if "=" in mnemonic:
         dest = dest_lkp[tmp[0]]
         tmp.pop(0)
     if ";" in mnemonic:
         jmp = jmp_lkp[tmp[-1]]
-    else:
-        jmp = "000"
 
-    opcode += dest
     opcode += cmp_lkp[tmp[0]]
+    opcode += dest
     opcode += jmp
     return opcode
 
@@ -182,13 +183,13 @@ def write_to_hack_file(opcodes: typing.List[str], f: str) -> None:
 
 def main(file: str) -> None:
     opcodes: typing.List[str] = []
+    instr: typing.List[str] = []
     variables: typing.List[str] = []
 
-    filename = file.split("/")[-1]
+    filename: str = file.split("/")[-1]
     filename = filename.split(".")[0]
     output_file = filename + ".hack"
 
-    print(output_file)
     first_pass(file)
 
     with open(file, "r") as f:
@@ -208,26 +209,29 @@ def main(file: str) -> None:
                     else:
                         opcode = c_to_opcode(line)
                     opcodes.append(opcode)
-        print(*opcodes, sep="\n")
+                    instr.append(line)
+
+        # print(*opcodes, sep="\n")  # prints to help debug
+        # print(*instr, sep="\n")
         write_to_hack_file(opcodes, output_file)
     return None
 
 
 if __name__ == "__main__":
     filepaths = [
-       #  "add/Add.asm",
-     "max/Max.asm",
-      #  "max/MaxL.asm",
-      #  "pong/Pong.asm",
-      #  "pong/PongL.asm",
-      #  "rect/RectL.asm",
-      #  "rect/RectL.asm",
+        "add/Add.asm",
+        "max/Max.asm",
+        "max/MaxL.asm",
+        "pong/Pong.asm",
+        "pong/PongL.asm",
+        "rect/Rect.asm",
+        "rect/RectL.asm",
     ]
 
     for file in filepaths:
         if os.path.exists(file):
             main(file)
         else:
-            print("File not found!")
+            print(f"File {file} not found!")
             sys.exit(0)
     sys.exit(0)
